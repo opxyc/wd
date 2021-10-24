@@ -79,6 +79,7 @@ func pushmsg(msg *wd.ErrorMsg) {
 	b, err := json.Marshal(m)
 	if err != nil {
 		log.Printf("failed to marshal msg: %v", err)
+		return
 	}
 
 	wsH.Broadcast(b)

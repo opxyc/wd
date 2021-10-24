@@ -1,0 +1,24 @@
+[
+    {
+        "name": "test",
+        "repeatInterval": 60,
+        "cmd": "./demo-scripts/cmd.sh",
+        "msg": "failureIndication - testing"
+    },
+    {
+        "name": "cpu-usage-gt-10",
+        "repeatInterval": 2,
+        "cmd": "./demo-scripts/cpu-usage.sh",
+        "msg": "cpu usage on > 10%. take action immediately",
+        "actionsToBeTaken": [
+            {
+                "name": "bringing foo down",
+                "cmd": "./demo-scripts/something-that-does-not-exist.sh"
+            },
+            {
+                "name": "bringing bar down",
+                "cmd": "./demo-scripts/bring-down-cpu-usage.sh"
+            }
+        ]
+    }
+]

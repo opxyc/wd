@@ -23,12 +23,12 @@ const (
 
 var (
 	cfgFile  = flag.String("c", "congif.json", "path to cfg file")
+	addr     = flag.String("r", "localhost:40090", "server address in the format IP:PORT")
 	lf       *os.File          // log file
 	l        *log.Logger       // logger
 	ml       *log.Logger       // multi logger - logs to file and stdout
 	client   wd.WatchdogClient // grpc client
 	hostname string            // system hostname
-	addr     = flag.String("r", "localhost:40090", "server address in the format IP:PORT")
 )
 
 func init() {
@@ -113,16 +113,10 @@ func execute(t *task) {
 
 			// execute actions if any
 			if len(t.Actions) > 0 {
-				op, errorOccured := runActions(t, err)
+				op, _ := runActions(t, err)
 				sb.WriteString(op)
-				if errorOccured {
-					send(id, t.Name, t.Msg, sb.String())
-				} else {
-					send(id, t.Name, t.Msg, sb.String())
-				}
-			} else {
-				send(id, t.Name, t.Msg, "")
 			}
+			send(id, t.Name, t.Msg, sb.String())
 			mlog(l, t.Name, nil, "", "completed with error")
 		}
 	}
