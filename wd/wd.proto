@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package wd;
+
+option go_package = "github.com/opxyc/gowd/wd";
+
+service watchdog {
+    rpc SendErrorMsg (ErrorMsg) returns (Void);
+}
+
+message ErrorMsg {
+    string Id = 1;
+    From From = 2;
+    Msg Msg = 3;
+}
+
+message From {
+    string Hostname = 1;
+    string IP = 2;
+}
+
+message Msg {
+    string Title = 1;
+    string Short = 2;
+    string Long = 3;
+}
+
+message Void {}

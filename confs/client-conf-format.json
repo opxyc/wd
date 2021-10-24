@@ -1,0 +1,25 @@
+[
+    {
+        "name": "task-one",
+        "repeatInterval": 10,
+        "cmd": "/path/to/some/script/to/execute.sh",
+        "msg": "some message that is to be sent to monitoring spoc when cmd fails. Failure is identified by printing something to stderr or completion with non-zero exit status"
+    },
+    {
+        "name": "ex-archival-mount-point-utilization",
+        "repeatInterval": 60,
+        "cmd": "/home/dbadmin/wd/scripts/mount-point-utilization.sh",
+        "msg": "mount point usage > 90%",
+        "actionsToBeTaken": [
+            {
+                "name": "delete arcs older than 3 months",
+                "cmd": "/home/dbadmin/wd/scripts/del-old-arcs.sh",
+                "continueOnFailure": true
+            },
+            {
+                "name": "delete old logs",
+                "cmd": "/home/dbadmin/wd/scripts/del-old-logs.sh"
+            }
+        ]
+    }
+]
