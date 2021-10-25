@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"flag"
+	"fmt"
 	"io"
 	"log"
 	"net"
@@ -78,7 +79,19 @@ func main() {
 type pbSrv struct{}
 
 func (pbSrv) SendErrorMsg(ctx context.Context, msg *wd.ErrorMsg) (*wd.Void, error) {
-	l.Printf("%-10s %-14s %-20s %s\n", msg.Id, msg.From, msg.Msg.Title, msg.Msg.Short)
+	// logs received msg in the format:
+	// 			ID            Host          Message
+	// |ALERT | 1635149439253 srv01         cpu usage on > 10%. take action immediately
+
+	// Note: the detailed info is not logged based on the assumption that it's better to inspect the same
+	// from the machine which generated alert given the log ID.
+	// also, the detailed info is sent to wdc client which makes more sense.
+
+	// separator := strings.Repeat(" ", len("| ALERT |"))
+	// titleRow := fmt.Sprintf("%s %-13s %-16s %s", separator, "ID", "Host", "Message")
+	info := fmt.Sprintf("| ALERT | %-13s %-16s %s", msg.Id, msg.From.Hostname, msg.Msg.Short)
+	// l.Printf("\n%s\n%s\n", titleRow, info)
+	l.Printf("%s\n", info)
 	// send the received alert/msg to all ws connections
 	pushmsg(msg)
 	return &wd.Void{}, nil

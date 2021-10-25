@@ -1,4 +1,4 @@
-package grpc
+package lgrpc
 
 import (
 	"context"
@@ -9,32 +9,25 @@ import (
 
 // GC is a gRPC Client Handle
 type GC struct {
-	addr   string
-	client wd.WatchdogClient
+	Client wd.WatchdogClient
 }
 
 // New returns a gRPC Client handle that can be used to
 // start a grpc server and send msgs.
-func New(addr string) *GC {
-	gc := GC{
-		addr: addr,
-	}
-	return &gc
-}
+func New(addr string) (*GC, error) {
+	gc := &GC{}
 
-// Start starts and serves ws server
-func (gc *GC) Start() error {
-	conn, err := grpc.Dial(gc.addr, grpc.WithInsecure())
+	conn, err := grpc.Dial(addr, grpc.WithInsecure())
 	if err != nil {
-		return err
+		return nil, err
 	}
-	gc.client = wd.NewWatchdogClient(conn)
-	return nil
+	gc.Client = wd.NewWatchdogClient(conn)
+	return gc, nil
 }
 
 // Send sends a message to gRPC server
 func (gc *GC) Send(id, hostname, title, short, long string) error {
-	_, err := gc.client.SendErrorMsg(context.Background(), &wd.ErrorMsg{
+	_, err := gc.Client.SendErrorMsg(context.Background(), &wd.ErrorMsg{
 		Id:   id,
 		From: &wd.From{Hostname: hostname},
 		Msg:  &wd.Msg{Title: title, Short: short, Long: long},

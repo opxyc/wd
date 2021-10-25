@@ -13,6 +13,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/opxyc/gowd/cmd/client/lgrpc"
 	"github.com/opxyc/gowd/wd"
 	"google.golang.org/grpc"
 )
@@ -24,6 +25,7 @@ var (
 	l           *log.Logger       // logger
 	ml          *log.Logger       // multi logger - logs to file and stdout
 	client      wd.WatchdogClient // grpc client
+	gc          *lgrpc.GC         // grpc client
 	hostname    string            // system hostname
 )
 
@@ -43,8 +45,14 @@ func main() {
 	ml = log.New(mw, "", log.LstdFlags)
 	l = log.New(lf, "", log.LstdFlags)
 
+	// // register gRPC client
+	// client, err = gRPCClient(*addr)
+	// if err != nil {
+	// 	ml.Printf("could not start gRPC client: %v", err)
+	// }
+
 	// register gRPC client
-	client, err = gRPCClient(*addr)
+	gc, err = lgrpc.New(*addr)
 	if err != nil {
 		ml.Printf("could not start gRPC client: %v", err)
 	}
@@ -106,7 +114,7 @@ func execute(ctx context.Context, t *task) string {
 				op, _ := runActions(t, err)
 				sb.WriteString(op)
 			}
-			err = send(id, t.Name, t.Msg, sb.String())
+			err = gc.Send(id, hostname, t.Name, t.Msg, sb.String())
 			if err != nil {
 				mlog(l, t.Name, nil, "", fmt.Sprintf("could not send msg to server: %v", err))
 			}
@@ -160,15 +168,4 @@ func gRPCClient(addr string) (wd.WatchdogClient, error) {
 	}
 	client = wd.NewWatchdogClient(conn)
 	return client, nil
-}
-
-// send sends gRPC message to server
-// need title, short and long msgs
-func send(id, title, short, long string) error {
-	_, err := client.SendErrorMsg(context.Background(), &wd.ErrorMsg{
-		Id:   id,
-		From: &wd.From{Hostname: hostname},
-		Msg:  &wd.Msg{Title: title, Short: short, Long: long},
-	})
-	return err
 }
