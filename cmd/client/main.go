@@ -38,6 +38,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("could not open %s for logging: %v\n", *logFilePath, err)
 	}
+	defer lf.Close()
 	mw := io.MultiWriter(lf, os.Stdout)
 	ml = log.New(mw, "", log.LstdFlags)
 	l = log.New(lf, "", log.LstdFlags)

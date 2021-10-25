@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"flag"
-	"fmt"
+	"io"
 	"log"
 	"net"
 	"os"
@@ -23,28 +23,41 @@ const httpAddr = ":40080"
 var (
 	wsH         *ws.WS
 	logFilePath = flag.String("l", "log/log.txt", "path to log file")
+	l           *log.Logger // logger
+	ml          *log.Logger // multi logger - logs to file and stdout
 )
 
 func main() {
 	flag.Parse()
+
+	// set up logger
+	lf, err := os.OpenFile(*logFilePath, os.O_CREATE|os.O_APPEND|os.O_RDWR, 06666)
+	if err != nil {
+		log.Fatalf("could not open %s for logging: %v\n", *logFilePath, err)
+	}
+	defer lf.Close()
+	mw := io.MultiWriter(lf, os.Stdout)
+	ml = log.New(mw, "", log.LstdFlags)
+	l = log.New(lf, "", log.LstdFlags)
 
 	go func() {
 		// start gRPC server
 		srv := grpc.NewServer()
 		var pb pbSrv
 		wd.RegisterWatchdogServer(srv, pb)
-		l, err := net.Listen("tcp", gRPCSrvAddr)
+		lsnr, err := net.Listen("tcp", gRPCSrvAddr)
 		if err != nil {
-			log.Fatalf("could not listen on %s: %v\n", gRPCSrvAddr, err)
+			ml.Fatalf("could not listen on %s: %v\n", gRPCSrvAddr, err)
 		}
 
-		log.Printf("gRPC listening on %s\n", gRPCSrvAddr)
-		log.Fatal(srv.Serve(l))
+		ml.Printf("gRPC listening on %s\n", gRPCSrvAddr)
+		ml.Fatal(srv.Serve(lsnr))
 	}()
 
 	go func() {
 		// start ws server
-		wsH = ws.New(httpAddr, "/ws/connect")
+		wsH = ws.New(httpAddr, "/ws/connect", nil)
+		ml.Printf("http listening on %s\n", httpAddr)
 		wsH.Start()
 	}()
 
@@ -53,19 +66,19 @@ func main() {
 	signal.Notify(sigChan, os.Interrupt)
 	signal.Notify(sigChan, syscall.SIGTERM)
 	signalReceived := <-sigChan
-	log.Printf("Received '%v', attempting graceful termination\n", signalReceived)
+	ml.Printf("Received '%v', attempting graceful termination\n", signalReceived)
 	tc, cancelFunc := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancelFunc()
 	select {
 	case <-tc.Done():
-		log.Println("done")
+		ml.Println("done")
 	}
 }
 
 type pbSrv struct{}
 
 func (pbSrv) SendErrorMsg(ctx context.Context, msg *wd.ErrorMsg) (*wd.Void, error) {
-	fmt.Printf("%-10s %-14s %-20s %s\n", msg.Id, msg.From, msg.Msg.Title, msg.Msg.Short)
+	l.Printf("%-10s %-14s %-20s %s\n", msg.Id, msg.From, msg.Msg.Title, msg.Msg.Short)
 	// send the received alert/msg to all ws connections
 	pushmsg(msg)
 	return &wd.Void{}, nil
@@ -81,7 +94,7 @@ func pushmsg(msg *wd.ErrorMsg) {
 	}
 	b, err := json.Marshal(m)
 	if err != nil {
-		log.Printf("failed to marshal msg: %v", err)
+		l.Printf("failed to marshal msg: %v", err)
 		return
 	}
 
