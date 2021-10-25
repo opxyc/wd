@@ -20,7 +20,10 @@ import (
 const gRPCSrvAddr = ":40090"
 const httpAddr = ":40080"
 
-var wsH *ws.WS
+var (
+	wsH         *ws.WS
+	logFilePath = flag.String("l", "log/log.txt", "path to log file")
+)
 
 func main() {
 	flag.Parse()
@@ -41,8 +44,8 @@ func main() {
 
 	go func() {
 		// start ws server
-		wsH = ws.New()
-		wsH.Start(httpAddr)
+		wsH = ws.New(httpAddr, "/ws/connect")
+		wsH.Start()
 	}()
 
 	// wait for signal

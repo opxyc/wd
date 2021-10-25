@@ -15,26 +15,25 @@ import (
 
 func main() {
 	addr := flag.String("r", "localhost:40080", "http service address")
+	ep := flag.String("ep", "/ws/connect", "http service address")
 	flag.Parse()
 
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt)
 
-	u := url.URL{Scheme: "ws", Host: *addr, Path: "/ws/connect"}
-	log.Printf("connecting to %s\n", u.String())
-
+	u := url.URL{Scheme: "ws", Host: *addr, Path: *ep}
 	c, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
 	if err != nil {
 		log.Fatal("dial:", err)
 	} else {
-		log.Printf("connected to %s\n", u.String())
+		log.Printf("connected  to %s\n", u.Host)
 	}
 	defer c.Close()
 
 	done := make(chan struct{})
 
 	go func() {
-		fmt.Printf("%-10s %-14s %-20s %s\n", "ID", "Host", "Title", "Message")
+		fmt.Printf("%-13s %-14s %-20s %s\n", "ID", "Host", "Title", "Message")
 		defer close(done)
 		for {
 			_, message, err := c.ReadMessage()
@@ -49,7 +48,7 @@ func main() {
 				log.Printf("could not unmarshal msg: %v\n", err)
 			}
 
-			fmt.Printf("%-10s %-14s %-20s %s\n", msg.ID, msg.From, msg.Title, msg.Short)
+			fmt.Printf("%-13s %-14s %-20s %s\n", msg.ID, msg.From, msg.Title, msg.Short)
 		}
 	}()
 

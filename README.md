@@ -9,16 +9,26 @@ Three components:
 ```
 Usage of ./client:
   -c string
-        path to cfg file (default "congif.json")
+        path to cfg file (default "config.json")
+  -l string
+        path to log file (default "log/log.txt")
   -r string
         server address in the format IP:PORT (default "localhost:40090")
 ```
 The [**Server**](cmd/server) is a gRPC server listening on port 40090. Multiple **client**s can connect to it and share errors/alerts. It then broadcasts the same to **wdc**s. Server also runs a http server for ws connections on port 40080.
 
+```
+Usage of ./server:
+  -l string
+        path to log file (default "log/log.txt")
+```
+
 [**wdc**](cmd/wdc)s are clients that run on monitoring spoc's local machines. It connects to the **server** through websockets and listens to incoming alerts.
 
 ```
 Usage of ./wdc:
+  -ep string
+        http service address (default "/ws/connect")
   -r string
         http service address (default "localhost:40080")
 ```
