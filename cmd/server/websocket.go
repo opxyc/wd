@@ -1,4 +1,4 @@
-package ws
+package main
 
 import (
 	"log"
@@ -15,7 +15,7 @@ var (
 	}
 )
 
-// WS is WebSocket handle
+// WS is websocket handle
 type WS struct {
 	// address of ws
 	addr string
@@ -26,24 +26,20 @@ type WS struct {
 	l    *log.Logger
 }
 
-// New returns a WS handle that can be used to
-// start a ws server on address addr and endpoint ep.
-func New(addr, ep string, l *log.Logger) *WS {
+// websocketServer creates a websocket server and listens for incoming
+// connections. It also assigns a handle to the global var ws
+// which can be used to broadcast messages to ws connections.
+func websocketServer(addr, ep string, l *log.Logger) {
 	if l == nil {
 		l = log.Default()
 	}
-	ws := WS{
+	ws = &WS{
 		addr: addr,
 		ep:   ep,
 		cons: make(map[string]websocket.Conn, 1000),
 		l:    l,
 	}
 	log.Printf("ws created : %v\n", ws)
-	return &ws
-}
-
-// Start starts and serves ws server
-func (ws *WS) Start() {
 	http.Handle(ws.ep, connectHandler(ws, connect))
 	ws.l.Fatal(http.ListenAndServe(ws.addr, nil))
 }

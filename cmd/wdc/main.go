@@ -1,83 +1,51 @@
 package main
 
 import (
-	"encoding/json"
+	"context"
 	"flag"
-	"fmt"
 	"log"
-	"net/url"
 	"os"
 	"os/signal"
-	"time"
+	"path/filepath"
+	"syscall"
 
-	"github.com/gorilla/websocket"
+	"github.com/opxyc/gowd/utils"
 )
+
+var l *log.Logger
 
 func main() {
 	addr := flag.String("r", "localhost:40080", "http service address")
 	ep := flag.String("ep", "/ws/connect", "http service address")
 	flag.Parse()
 
-	interrupt := make(chan os.Signal, 1)
-	signal.Notify(interrupt, os.Interrupt)
-
-	u := url.URL{Scheme: "ws", Host: *addr, Path: *ep}
-	c, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
+	// set up logger that logs into user's $HOME/WatchDog-client/logs
+	d, err := os.UserHomeDir()
 	if err != nil {
-		log.Fatal("dial:", err)
-	} else {
-		log.Printf("connected  to %s\n", u.Host)
+		log.Fatalf("could not get your home directory: %v\n", err)
 	}
-	defer c.Close()
 
-	done := make(chan struct{})
-
-	go func() {
-		fmt.Printf("%-13s %-14s %-20s %s\n", "ID", "Host", "Title", "Message")
-		defer close(done)
-		for {
-			_, message, err := c.ReadMessage()
-			if err != nil {
-				log.Println("read:", err)
-				return
-			}
-
-			var msg msgFormat
-			err = json.Unmarshal(message, &msg)
-			if err != nil {
-				log.Printf("could not unmarshal msg: %v\n", err)
-			}
-
-			fmt.Printf("%-13s %-14s %-20s %s\n", msg.ID, msg.From, msg.Title, msg.Short)
-		}
-	}()
-
-	for {
-		select {
-		case <-done:
-			return
-		case <-interrupt:
-			log.Println("interrupt")
-			// Cleanly close the connection by sending a close message and then
-			// waiting (with timeout) for the server to close the connection.
-			err := c.WriteMessage(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
-			if err != nil {
-				log.Println("write close:", err)
-				return
-			}
-			select {
-			case <-done:
-			case <-time.After(time.Second):
-			}
-			return
-		}
+	f := filepath.Join(d, "WatchDog-client", "logs", "log.txt")
+	lf, err := utils.LogFile(f)
+	if err != nil {
+		log.Fatalf("could not set logger: %v\n", err)
 	}
-}
+	defer lf.Close()
 
-type msgFormat struct {
-	ID    string `json:"id"`
-	From  string `json:"from"`
-	Title string `json:"title"`
-	Short string `json:"short"`
-	Long  string `json:"long"`
+	log.Printf("logging to '%v'\n", filepath.Dir(lf.Name()))
+	l = log.New(lf, "", log.LstdFlags)
+
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	defer cancelFunc()
+	// make websocket connection
+	ws := websocketCon(*addr, *ep, l)
+	// listen and log incoming messages
+	go ws.lnl(ctx)
+
+	// wait for interrupt (if any)
+	sigchan := make(chan os.Signal, 1)
+	signal.Notify(sigchan, os.Interrupt, syscall.SIGTERM)
+	log.Printf("received '%v\n", <-sigchan)
+	// close websocket connection
+	ws.Close()
 }

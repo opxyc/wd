@@ -1,21 +1,20 @@
 {
-    "hostname": "srv01",
     "tasks": [
         {
             "name": "test",
             "repeatInterval": 25,
-            "cmd": "./demo-scripts/cmd.sh",
+            "cmd": "lss",
             "msg": "failureIndication - testing"
         },
         {
             "name": "cpu-usage-gt-10",
-            "repeatInterval": 10,
+            "repeatInterval": 5,
             "cmd": "./demo-scripts/cpu-usage.sh",
             "msg": "cpu usage on > 10%. take action immediately",
             "actionsToBeTaken": [
                 {
                     "name": "bringing foo down",
-                    "cmd": "./demo-scripts/something-that-does-not-exist.sh"
+                    "cmd": "lss"
                 },
                 {
                     "name": "bringing bar down",

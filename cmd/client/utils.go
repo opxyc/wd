@@ -31,7 +31,7 @@ type action struct {
 func readFromCfg(path string) *cfg {
 	f, err := os.Open("config.json")
 	if err != nil {
-		l.Println("could not open config.json:", err)
+		sl.Println("could not open config.json:", err)
 		os.Exit(1)
 	}
 	enc := json.NewDecoder(f)
