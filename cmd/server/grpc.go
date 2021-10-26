@@ -37,7 +37,7 @@ func (pbSrv) SendErrorMsg(ctx context.Context, msg *wd.ErrorMsg) (*wd.Void, erro
 
 	// separator := strings.Repeat(" ", len("| ALERT |"))
 	// titleRow := fmt.Sprintf("%s %-13s %-16s %s", separator, "ID", "Host", "Message")
-	info := fmt.Sprintf("| ALERT | %-13s %-16s %s", msg.Id, msg.From.Hostname, msg.Msg.Short)
+	info := fmt.Sprintf("| ALERT | %-38s %-16s %s", msg.Id, msg.From.Hostname, msg.Msg.Short)
 	// l.Printf("\n%s\n%s\n", titleRow, info)
 	l.Printf("%s\n", info)
 	// send the received alert/msg to all ws connections

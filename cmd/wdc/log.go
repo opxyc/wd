@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"strings"
 	"sync"
 	"time"
 )
@@ -27,8 +26,7 @@ func printHeader() {
 func alogHeader() string {
 	// header format:
 	// 			 TIME		ID            Host          Message
-	separator := strings.Repeat(" ", len("| ALERT |"))
-	titleRow := fmt.Sprintf("%s %-13v %-13s %-16s %s", separator, "TIME", "ID", "Host", "Message")
+	titleRow := fmt.Sprintf("%-13v %-38s %-16s %s", "TIME", "ID", "Host", "Message")
 	return titleRow
 }
 
@@ -40,7 +38,7 @@ func alog(msg *alert) {
 
 	// Note: the detailed info is not logged to console. it it stored to log file only.
 	printHeader()
-	info := fmt.Sprintf("| ALERT | %-13v %-13s %-16s %s", time.Now().Format("15:04:05"), msg.ID, msg.From, msg.Short)
+	info := fmt.Sprintf("%-13v %-38s %-16s %s", time.Now().Format("15:04:05"), msg.ID, msg.From, msg.Short)
 	fmt.Printf("%s\n", info)
 
 	// log to file

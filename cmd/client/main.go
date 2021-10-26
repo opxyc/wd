@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/opxyc/gowd/utils/logger"
 	"github.com/opxyc/gowd/wd"
 	"google.golang.org/grpc"
@@ -87,7 +88,7 @@ func execute(ctx context.Context, t *task) string {
 		case <-ctx.Done():
 			return t.Name
 		case <-time.After(time.Second * time.Duration(t.Interval)):
-			id := fmt.Sprintf("%v", time.Now().UnixMilli())
+			id := uuid.NewString()
 			var sb strings.Builder
 			var op string
 			mlog(tl, t.Name, nil, "", fmt.Sprintf("starting with ID %v", id))
