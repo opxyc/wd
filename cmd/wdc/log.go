@@ -23,7 +23,7 @@ func printHeader() {
 	}
 }
 
-// alogHeader returns log header
+// alogHeader returns alert log header
 func alogHeader() string {
 	// header format:
 	// 			 TIME		ID            Host          Message
@@ -44,8 +44,7 @@ func alog(msg *alert) {
 	fmt.Printf("%s\n", info)
 
 	// log to file
-	info = fmt.Sprintf("| ALERT | %-13v %-13s %-16s %s", time.Now().Format("15:04:05"), msg.ID, msg.From, msg.Short)
 	l.Println(alogHeader())
 	l.Printf("%s\n", info)
-	l.Printf("| INFO\n%s\n", msg.Long)
+	l.Printf("| DETAILED INFO:\n%s\n", msg.Long)
 }

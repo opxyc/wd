@@ -8,8 +8,9 @@ import (
 	"os/signal"
 	"path/filepath"
 	"syscall"
+	"time"
 
-	"github.com/opxyc/gowd/utils"
+	"github.com/opxyc/gowd/utils/logger"
 )
 
 var l *log.Logger
@@ -25,20 +26,17 @@ func main() {
 		log.Fatalf("could not get your home directory: %v\n", err)
 	}
 
-	f := filepath.Join(d, "WatchDog-client", "logs", "log.txt")
-	lf, err := utils.LogFile(f)
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	defer cancelFunc()
+
+	dir := filepath.Join(d, "WatchDog-client", "logs")
+	l, err = logger.NewDailyLogger(ctx, dir, 00, 00)
 	if err != nil {
 		log.Fatalf("could not set logger: %v\n", err)
 	}
-	defer lf.Close()
 
-	log.Printf("logging to '%v'\n", filepath.Dir(lf.Name()))
-	l = log.New(lf, "", log.LstdFlags)
-
-	ctx, cancelFunc := context.WithCancel(context.Background())
-	defer cancelFunc()
 	// make websocket connection
-	ws := websocketCon(*addr, *ep, l)
+	ws := websocketCon(*addr, *ep)
 	// listen and log incoming messages
 	go ws.lnl(ctx)
 
@@ -46,6 +44,9 @@ func main() {
 	sigchan := make(chan os.Signal, 1)
 	signal.Notify(sigchan, os.Interrupt, syscall.SIGTERM)
 	log.Printf("received '%v\n", <-sigchan)
-	// close websocket connection
-	ws.Close()
+	log.Println("saving logs..")
+	// cancel context which will close ws and log file
+	cancelFunc()
+	time.Sleep(time.Millisecond * 300)
+	log.Println("done")
 }

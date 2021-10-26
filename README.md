@@ -33,35 +33,35 @@ Usage of ./wdc:
         http service address (default "localhost:40080")
 ```
 
-### Configuration file format
+## Configuration file format
 type: JSON
 
-```json
+```js
 {
     "hostname": "h0stnam3",
-      // (optional)
-      // If not specified, the client will try to get system hostname.
-      // Else, `hostname` will be used.
+        // (optional)
+        // If not specified, the client will try to get system hostname.
+        // Else, `hostname` will be used.
     "tasks": [
         {
             "name": "foo",
-                  // (optional)
-                  // Note: `name` can be helpful to distinguish tasks while reading log files,
-                  // so, it's recommended to give one (ideally separated with dashes).
+                // (optional)
+                // Note: `name` can be helpful to distinguish tasks while reading log files,
+                // so, it's recommended to give one (ideally separated with dashes).
             "repeatInterval": 60,
-                  // (required)
-                  // the time interval after which the task should repeat itself
+                // (required)
+                // the time interval after which the task should repeat itself
             "cmd": "/path/to/some/script/to/execute.sh",
-                  // (required)
-                  // The command/script to execute.
-                  // Note: If the script failed with exit code != 0, it will trigger an alert.
-            "msg": "some message that is to be sent to monitoring spoc when cmd fails. Failure is identified by printing something to stderr or completion with non-zero exit status",
-                  // (required)
-                  // the message that will sent upon failure of script mentioned in `cmd`
+                // (required)
+                // The command/script to execute.
+                // Note: If the script failed with exit code != 0, it will trigger an alert.
+            "msg": "some message that is to be sent to monitoring spoc when cmd fails",
+                // (required)
+                // the message that will sent upon failure of script mentioned in `cmd`
             "actionsToBeTaken": [
-                  // (optional)
-                  // represents the actions to be taken when task fails.
-                  // Note: all actions are executed sequentially one after other.
+                // (optional)
+                // represents the actions to be taken when task fails.
+                // Note: all actions are executed sequentially one after other.
                 {
                     "name": "action-one",
                         // (optional)
@@ -103,7 +103,7 @@ type: JSON
 }
 ```
 
-#### Alert Behaviour
+### Alert Behaviour
 | If | Will alert be sent? | Behaviour |
 | --- | --- | --- |
 | `cmd` completes successfully | No | No alerts. Adds to the log that task was completed successfully. |

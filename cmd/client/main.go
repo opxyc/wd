@@ -4,7 +4,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"io"
 	"log"
 	"os"
 	"os/exec"
@@ -13,7 +12,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/opxyc/gowd/utils"
+	"github.com/opxyc/gowd/utils/logger"
 	"github.com/opxyc/gowd/wd"
 	"google.golang.org/grpc"
 )
@@ -21,11 +20,10 @@ import (
 var (
 	cfgF     = flag.String("c", "config.json", "path to cfg file")
 	addr     = flag.String("r", "localhost:40090", "server address in the format IP:PORT")
-	sf       = flag.String("sl", "log/self-logs.txt", "client specific log file")
-	tf       = flag.String("tl", "log/task-logs.txt", "task execution log file")
+	sDir     = flag.String("sl", "log/self", "client specific log directory")
+	tDir     = flag.String("tl", "log/task", "task execution log directory")
 	sl       *log.Logger       // self logger - for logging client specific stuff
 	tl       *log.Logger       // task execution logger
-	ml       *log.Logger       // multi logger - logs to file and stdout
 	client   wd.WatchdogClient // grpc client
 	gc       *GC               // grpc client
 	hostname string            // system hostname
@@ -36,28 +34,25 @@ func main() {
 
 	// set up loggers
 	// ---------------------------
-	// self logger
-	slf, err := utils.LogFile(*sf)
-	if err != nil {
-		log.Fatalf("could not set logger: %v\n", err)
-	}
-	defer slf.Close()
+	var err error
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	defer cancelFunc()
 
-	tlf, err := utils.LogFile(*tf)
+	sl, err = logger.NewDailyLogger(ctx, *sDir, 00, 00, os.Stdout)
 	if err != nil {
-		log.Fatalf("could not set logger: %v\n", err)
+		log.Fatalf("could not set logger #1: %v\n", err)
 	}
-	defer slf.Close()
-	mw := io.MultiWriter(slf, os.Stdout)
-	ml = log.New(mw, "", log.LstdFlags)
-	sl = log.New(slf, "", log.LstdFlags)
-	tl = log.New(tlf, "", log.LstdFlags)
+
+	tl, err = logger.NewDailyLogger(ctx, *tDir, 00, 00)
+	if err != nil {
+		log.Fatalf("could not set logger #2: %v\n", err)
+	}
 	// ------------------------------
 
 	// register gRPC client
 	gc, err = grpcCon(*addr)
 	if err != nil {
-		ml.Fatalf("could not start gRPC client: %v", err)
+		sl.Fatalf("could not start gRPC client: %v", err)
 	}
 
 	// read cfg file
@@ -67,10 +62,9 @@ func main() {
 		hostname, err = os.Hostname()
 	}
 
-	ml.Printf("client (%s) started\n", hostname)
+	sl.Printf("client (%s) started\n", hostname)
 
 	// execute tasks
-	ctx, cancelFunc := context.WithCancel(context.Background())
 	for _, t := range cfg.Tasks {
 		go func(t task) {
 			execute(ctx, &t)
@@ -80,14 +74,10 @@ func main() {
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 	signalReceived := <-sigChan
-	ml.Printf("received '%v', attempting graceful termination\n", signalReceived)
+	sl.Printf("received '%v', attempting graceful shutdown\n", signalReceived)
 	cancelFunc()
-	tc, cf := context.WithTimeout(context.Background(), 2*time.Second)
-	defer cf()
-	select {
-	case <-tc.Done():
-		ml.Println("done")
-	}
+	time.Sleep(time.Millisecond * 300)
+	log.Println("done")
 }
 
 // execute executes a given task repetely according to the interval mentioned
@@ -125,7 +115,7 @@ func execute(ctx context.Context, t *task) string {
 			}
 			err = gc.send(id, hostname, t.Name, t.Msg, sb.String())
 			if err != nil {
-				ml.Printf("could not send msg to server: %v", err)
+				sl.Printf("could not send msg to server: %v", err)
 			}
 			mlog(tl, t.Name, nil, "", "completed with error")
 		}

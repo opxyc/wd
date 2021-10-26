@@ -39,7 +39,7 @@ func websocketServer(addr, ep string, l *log.Logger) {
 		cons: make(map[string]websocket.Conn, 1000),
 		l:    l,
 	}
-	log.Printf("ws created : %v\n", ws)
+	log.Printf("http listening on %v\n", ws.addr)
 	http.Handle(ws.ep, connectHandler(ws, connect))
 	ws.l.Fatal(http.ListenAndServe(ws.addr, nil))
 }

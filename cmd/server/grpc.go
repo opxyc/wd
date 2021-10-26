@@ -17,11 +17,11 @@ func gRPCServer() {
 	wd.RegisterWatchdogServer(srv, pb)
 	lsnr, err := net.Listen("tcp", gRPCSrvAddr)
 	if err != nil {
-		ml.Fatalf("could not listen on %s: %v\n", gRPCSrvAddr, err)
+		l.Fatalf("could not listen on %s: %v\n", gRPCSrvAddr, err)
 	}
 
-	ml.Printf("gRPC listening on %s\n", gRPCSrvAddr)
-	ml.Fatal(srv.Serve(lsnr))
+	l.Printf("gRPC listening on %s\n", gRPCSrvAddr)
+	l.Fatal(srv.Serve(lsnr))
 }
 
 type pbSrv struct{}
