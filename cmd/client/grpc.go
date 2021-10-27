@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 
-	"github.com/opxyc/gowd/wd"
+	"github.com/opxyc/wd/wd"
 	"google.golang.org/grpc"
 )
 
@@ -26,11 +26,12 @@ func grpcCon(addr string) (*GC, error) {
 }
 
 // send sends a message to gRPC server
-func (gc *GC) send(id, hostname, title, short, long string) error {
+func (gc *GC) send(id, hostname, title, short, long string, status int32) error {
 	_, err := gc.client.SendErrorMsg(context.Background(), &wd.ErrorMsg{
-		Id:   id,
-		From: &wd.From{Hostname: hostname},
-		Msg:  &wd.Msg{Title: title, Short: short, Long: long},
+		Id:     id,
+		From:   &wd.From{Hostname: hostname},
+		Msg:    &wd.Msg{Title: title, Short: short, Long: long},
+		Status: status,
 	})
 	return err
 }

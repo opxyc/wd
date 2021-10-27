@@ -6,21 +6,21 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/opxyc/gowd/wd"
+	"github.com/opxyc/wd/wd"
 	"google.golang.org/grpc"
 )
 
 // gRPCServer creates a gRPC server and server
-func gRPCServer() {
+func gRPCServer(addr string) {
 	srv := grpc.NewServer()
 	var pb pbSrv
 	wd.RegisterWatchdogServer(srv, pb)
-	lsnr, err := net.Listen("tcp", gRPCSrvAddr)
+	lsnr, err := net.Listen("tcp", addr)
 	if err != nil {
-		l.Fatalf("could not listen on %s: %v\n", gRPCSrvAddr, err)
+		l.Fatalf("could not listen on %s: %v\n", addr, err)
 	}
 
-	l.Printf("gRPC listening on %s\n", gRPCSrvAddr)
+	l.Printf("gRPC listening on %s\n", addr)
 	l.Fatal(srv.Serve(lsnr))
 }
 
@@ -48,11 +48,12 @@ func (pbSrv) SendErrorMsg(ctx context.Context, msg *wd.ErrorMsg) (*wd.Void, erro
 // pushmsg broadcasts msg to websocket connections
 func pushmsg(msg *wd.ErrorMsg) {
 	m := &msgFormat{
-		ID:    msg.Id,
-		From:  msg.From.Hostname,
-		Title: msg.Msg.Title,
-		Short: msg.Msg.Short,
-		Long:  msg.Msg.Long,
+		ID:     msg.Id,
+		From:   msg.From.Hostname,
+		Title:  msg.Msg.Title,
+		Short:  msg.Msg.Short,
+		Long:   msg.Msg.Long,
+		Status: msg.Status,
 	}
 	b, err := json.Marshal(m)
 	if err != nil {
@@ -64,9 +65,10 @@ func pushmsg(msg *wd.ErrorMsg) {
 }
 
 type msgFormat struct {
-	ID    string `json:"id"`
-	From  string `json:"from"`
-	Title string `json:"title"`
-	Short string `json:"short"`
-	Long  string `json:"long"`
+	ID     string `json:"id"`
+	From   string `json:"from"`
+	Title  string `json:"title"`
+	Short  string `json:"short"`
+	Long   string `json:"long"`
+	Status int32  `json:"status"`
 }

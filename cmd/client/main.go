@@ -12,9 +12,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/google/uuid"
-	"github.com/opxyc/gowd/utils/logger"
-	"github.com/opxyc/gowd/wd"
+	"github.com/lithammer/shortuuid"
+	"github.com/opxyc/wd/utils/logger"
+	"github.com/opxyc/wd/wd"
 	"google.golang.org/grpc"
 )
 
@@ -88,7 +88,7 @@ func execute(ctx context.Context, t *task) string {
 		case <-ctx.Done():
 			return t.Name
 		case <-time.After(time.Second * time.Duration(t.Interval)):
-			id := uuid.NewString()
+			id := shortuuid.New()
 			var sb strings.Builder
 			var op string
 			mlog(tl, t.Name, nil, "", fmt.Sprintf("starting with ID %v", id))
@@ -101,6 +101,9 @@ func execute(ctx context.Context, t *task) string {
 				continue
 			}
 
+			// error has occured...
+			// set status to 1
+			var status int32 = 1
 			sb.WriteString(errOp)
 
 			// execute actions if any
@@ -108,13 +111,13 @@ func execute(ctx context.Context, t *task) string {
 				errOp, errorOccured := runActions(t, err)
 				// errOp != nil means anyone of the actions failed
 				sb.WriteString(*errOp)
-				if errorOccured {
-					sb.WriteString("Actions failed to complete. Status: Need manual INT\n")
-				} else {
-					sb.WriteString("Actions completed successfully. Status: OK\n")
+				if !errorOccured {
+					// actions were taken and situation is handled.
+					// so set status to 0
+					status = 0
 				}
 			}
-			err = gc.send(id, hostname, t.Name, t.Msg, sb.String())
+			err = gc.send(id, hostname, t.Name, t.Msg, sb.String(), status)
 			if err != nil {
 				sl.Printf("could not send msg to server: %v", err)
 			}

@@ -26,22 +26,10 @@ type WS struct {
 	l    *log.Logger
 }
 
-// websocketServer creates a websocket server and listens for incoming
-// connections. It also assigns a handle to the global var ws
-// which can be used to broadcast messages to ws connections.
-func websocketServer(addr, ep string, l *log.Logger) {
-	if l == nil {
-		l = log.Default()
-	}
-	ws = &WS{
-		addr: addr,
-		ep:   ep,
-		cons: make(map[string]websocket.Conn, 1000),
-		l:    l,
-	}
-	log.Printf("http listening on %v\n", ws.addr)
+// Start starts the websocket server and listens on ws.ep
+func (ws *WS) Start() error {
 	http.Handle(ws.ep, connectHandler(ws, connect))
-	ws.l.Fatal(http.ListenAndServe(ws.addr, nil))
+	return http.ListenAndServe(ws.addr, nil)
 }
 
 // Broadcast broadcasts a given msg to all the connections in ws
@@ -59,6 +47,25 @@ func (ws *WS) Broadcast(msg []byte) {
 		delete(ws.cons, rAddr)
 		ws.l.Printf("removed connection %s from %s%s\n", rAddr, ws.addr, ws.ep)
 	}
+}
+
+// New creates a new websocket handle
+func New(addr, ep string, l *log.Logger) *WS {
+	return &WS{
+		addr: addr,
+		ep:   ep,
+		cons: make(map[string]websocket.Conn, 1000),
+		l:    l,
+	}
+}
+
+// websocketServer creates a websocket server and listens for incoming
+// connections. It also assigns a handle to the global var ws
+// which can be used to broadcast messages to ws connections.
+func websocketServer(addr, ep string, l *log.Logger) {
+	ws = New(addr, ep, l)
+	log.Printf("http listening on %v\n", ws.addr)
+	ws.l.Fatal(ws.Start())
 }
 
 // connectHandler connects a node to given ws

@@ -10,27 +10,35 @@ Three components:
 Usage of ./client:
   -c string
         path to cfg file (default "config.json")
-  -l string
-        path to log file (default "log/log.txt")
   -r string
         server address in the format IP:PORT (default "localhost:40090")
+  -sl string
+        client specific log directory (default "log/self")
+  -tl string
+        task execution log directory (default "log/task")
 ```
 The [**Server**](cmd/server) is a gRPC server listening on port 40090. Multiple **client**s can connect to it and share errors/alerts. It then broadcasts the same to **wdc**s. Server also runs a http server for ws connections on port 40080.
 
 ```
 Usage of ./server:
   -l string
-        path to log file (default "log/log.txt")
+        log directory (default "log")
 ```
 
-[**wdc**](cmd/wdc)s are clients that run on monitoring spoc's local machines. It connects to the **server** through websockets and listens to incoming alerts.
+[**wdc**](cmd/wdc)s are clients that run on monitoring spoc's local machines. It connects to the **server** through websockets and listens to incoming alerts and logs to `$HOME/WatchDog-Client/log` directory. It also includes an http server listening on port 8080 with a single end point `/{id}` which returns details of the alert with given `id`.
 
 ```
-Usage of ./wdc:
-  -ep string
-        http service address (default "/ws/connect")
-  -r string
-        http service address (default "localhost:40080")
+Usage of wdc: 
+    wdcx COMMAND
+
+    Commands:
+        start - listen to incoming alerts
+            -ep string
+                connection endpoint for -r (default "/ws/connect")
+            -r string
+                http server address (default "localhost:40080")
+
+        get {id} - prints details of an alert given it's id
 ```
 
 ## Configuration file format
@@ -106,5 +114,5 @@ type: JSON
 ### Alert Behaviour
 | If | Will alert be sent? | Behaviour |
 | --- | --- | --- |
-| `cmd` completes successfully | No | No alerts. Adds to the log that task was completed successfully. |
-| `cmd` fails | Yes | Will log the error and output; and:<br/>If `actionsToBeTaken` is mentioned to the failed task, will proceed with it's execution and then send and alert accordingly: <br/><ul><li>If all actions succeeds, it will send an alert with final status as "OK"</li> <li> If all actions in `actionsToBeTaken` succeeds, it will mention "actions failed to complete" in the alert sent.</li></ul> Else, it will simply send an alert. | 
+| `cmd` completes successfully | No | No alerts. Logs "task completed successfully". |
+| `cmd` fails | Yes | Will log the error and output; and:<br/>If `actionsToBeTaken` is mentioned, will proceed with it's execution and then send an alert accordingly: <br/><ul><li>If all actions succeeds, it will send an alert with final status as "OK"</li> <li> If any one of the listed action(s) fails, it will mention "actions failed to complete" in the alert sent.</li></ul> Else, it will simply send an alert. | 

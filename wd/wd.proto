@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package wd;
 
-option go_package = "github.com/opxyc/gowd/wd";
+option go_package = "github.com/opxyc/wd/wd";
 
 service watchdog {
     rpc SendErrorMsg (ErrorMsg) returns (Void);
@@ -12,6 +12,7 @@ message ErrorMsg {
     string Id = 1;
     From From = 2;
     Msg Msg = 3;
+    int32 Status = 4;
 }
 
 message From {

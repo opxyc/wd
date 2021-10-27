@@ -4,17 +4,17 @@
             "name": "test",
             "repeatInterval": 25,
             "cmd": "lss",
-            "msg": "failureIndication - testing"
+            "msg": "failureIndication - testing. the killer message. more than 40 characters long is going to suck."
         },
         {
             "name": "cpu-usage-gt-10",
-            "repeatInterval": 5,
+            "repeatInterval": 10,
             "cmd": "./demo-scripts/cpu-usage.sh",
-            "msg": "cpu usage on > 10%. take action immediately",
+            "msg": "cpu usage > 10%. take action immediately",
             "actionsToBeTaken": [
                 {
                     "name": "bringing foo down",
-                    "cmd": "lss"
+                    "cmd": "ls"
                 },
                 {
                     "name": "bringing bar down",

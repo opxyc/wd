@@ -9,19 +9,18 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/opxyc/gowd/utils/logger"
+	"github.com/opxyc/wd/utils/logger"
 )
 
-const gRPCSrvAddr = ":40090"
-const httpAddr = ":40080"
-
 var (
-	ws  *WS // websocket	handler
-	dir = flag.String("l", "log", "log directory")
-	l   *log.Logger // logger
+	ws *WS         // websocket	handler
+	l  *log.Logger // logger
 )
 
 func main() {
+	gRPCSrvAddr := flag.String("grpc-addr", ":40090", "network address addr on which gRPC server should listen on")
+	httpAddr := flag.String("http-addr", ":40080", "network address addr on which http server should listen on")
+	dir := flag.String("l", "log", "log directory")
 	flag.Parse()
 
 	// set up logger
@@ -34,8 +33,8 @@ func main() {
 		log.Fatalf("could not set logger #2: %v\n", err)
 	}
 
-	go gRPCServer()
-	go websocketServer(httpAddr, "/ws/connect", nil)
+	go gRPCServer(*gRPCSrvAddr)
+	go websocketServer(*httpAddr, "/ws/connect", nil)
 
 	// wait for signal
 	sigChan := make(chan os.Signal, 1)
