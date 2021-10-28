@@ -19,6 +19,6 @@ require (
 )
 
 require (
-	github.com/gorilla/mux v1.8.0 // direct
 	github.com/lithammer/shortuuid v3.0.0+incompatible
+	github.com/opxyc/goutils v0.0.0-20211027051832-245e5ab40e2a
 )

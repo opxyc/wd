@@ -27,19 +27,10 @@ func gRPCServer(addr string) {
 type pbSrv struct{}
 
 func (pbSrv) SendErrorMsg(ctx context.Context, msg *wd.ErrorMsg) (*wd.Void, error) {
-	// logs received msg in the format:
-	// 			ID            Host          Message
-	// |ALERT | 1635149439253 srv01         cpu usage on > 10%. take action immediately
-
-	// Note: the detailed info is not logged based on the assumption that it's better to inspect the same
-	// from the machine which generated alert given the log ID.
-	// also, the detailed info is sent to wdc client which makes more sense.
-
-	// separator := strings.Repeat(" ", len("| ALERT |"))
-	// titleRow := fmt.Sprintf("%s %-13s %-16s %s", separator, "ID", "Host", "Message")
-	info := fmt.Sprintf("| ALERT | %-38s %-16s %s", msg.Id, msg.From.Hostname, msg.Msg.Short)
-	// l.Printf("\n%s\n%s\n", titleRow, info)
+	// log msg to file..
+	info := fmt.Sprintf("%-23s %-16s %s", msg.Id, msg.From.Hostname, msg.Msg.Short)
 	l.Printf("%s\n", info)
+
 	// send the received alert/msg to all ws connections
 	pushmsg(msg)
 	return &wd.Void{}, nil
@@ -48,12 +39,13 @@ func (pbSrv) SendErrorMsg(ctx context.Context, msg *wd.ErrorMsg) (*wd.Void, erro
 // pushmsg broadcasts msg to websocket connections
 func pushmsg(msg *wd.ErrorMsg) {
 	m := &msgFormat{
-		ID:     msg.Id,
-		From:   msg.From.Hostname,
-		Title:  msg.Msg.Title,
-		Short:  msg.Msg.Short,
-		Long:   msg.Msg.Long,
-		Status: msg.Status,
+		Time:     msg.Msg.Time,
+		ID:       msg.Id,
+		From:     msg.From.Hostname,
+		TaskName: msg.From.TaskName,
+		Short:    msg.Msg.Short,
+		Long:     msg.Msg.Long,
+		Status:   msg.Status,
 	}
 	b, err := json.Marshal(m)
 	if err != nil {
@@ -65,10 +57,11 @@ func pushmsg(msg *wd.ErrorMsg) {
 }
 
 type msgFormat struct {
-	ID     string `json:"id"`
-	From   string `json:"from"`
-	Title  string `json:"title"`
-	Short  string `json:"short"`
-	Long   string `json:"long"`
-	Status int32  `json:"status"`
+	Time     string `json:"time"`
+	ID       string `json:"id"`
+	From     string `json:"from"`
+	TaskName string `json:"taskName"`
+	Short    string `json:"short"`  // short message - msg field in client config.json
+	Long     string `json:"long"`   // long message - combined output of `cmd`
+	Status   int32  `json:"status"` // 0 if success, 1 if failed
 }

@@ -79,8 +79,8 @@ func connectHandler(ws *WS, f func(ws *WS, rw http.ResponseWriter, r *http.Reque
 	}
 }
 
-func connect(ws *WS, w http.ResponseWriter, r *http.Request) error {
-	c, err := upgrader.Upgrade(w, r, nil)
+func connect(ws *WS, rw http.ResponseWriter, r *http.Request) error {
+	c, err := upgrader.Upgrade(rw, r, nil)
 	if err != nil {
 		log.Print("upgrade:", err)
 		return nil

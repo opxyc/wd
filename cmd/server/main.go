@@ -9,7 +9,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/opxyc/wd/utils/logger"
+	"github.com/opxyc/goutils/logger"
 )
 
 var (
@@ -28,13 +28,14 @@ func main() {
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	defer cancelFunc()
 
-	l, err = logger.NewDailyLogger(ctx, *dir, 00, 00, os.Stdout)
+	const logFileNameFormat = "2006-Jan-02"
+	l, err = logger.NewDailyLogger(ctx, *dir, logFileNameFormat, 00, 00, os.Stdout)
 	if err != nil {
 		log.Fatalf("could not set logger #2: %v\n", err)
 	}
 
 	go gRPCServer(*gRPCSrvAddr)
-	go websocketServer(*httpAddr, "/ws/connect", nil)
+	go websocketServer(*httpAddr, "/ws/connect", l)
 
 	// wait for signal
 	sigChan := make(chan os.Signal, 1)
@@ -42,8 +43,8 @@ func main() {
 	signal.Notify(sigChan, syscall.SIGTERM)
 	signalReceived := <-sigChan
 	l.Printf("Received '%v', attempting graceful termination\n", signalReceived)
-	tc, cancelFunc := context.WithTimeout(context.Background(), 1*time.Second)
-	defer cancelFunc()
+	tc, cf := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cf()
 	select {
 	case <-tc.Done():
 		l.Println("done")

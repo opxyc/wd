@@ -1,26 +1,48 @@
 {
     "tasks": [
         {
-            "name": "test",
-            "repeatInterval": 25,
-            "cmd": "lss",
-            "msg": "failureIndication - testing. the killer message. more than 40 characters long is going to suck."
+            "name": "always-succeeding-task",
+            "repeatInterval": 30,
+            "cmd": "ls",
+            "msg": "Mount point /arc > 90%"
         },
         {
-            "name": "cpu-usage-gt-10",
-            "repeatInterval": 10,
+            "name": "failing-but-actions-succeeding-task",
+            "repeatInterval": 9,
             "cmd": "./demo-scripts/cpu-usage.sh",
-            "msg": "cpu usage > 10%. take action immediately",
+            "msg": "cmd failing but actions succeeding task",
             "actionsToBeTaken": [
                 {
-                    "name": "bringing foo down",
+                    "name": "kill john",
                     "cmd": "ls"
                 },
                 {
-                    "name": "bringing bar down",
+                    "name": "kill jane",
                     "cmd": "./demo-scripts/bring-down-cpu-usage.sh"
                 }
             ]
+        },
+        {
+            "name": "failing-and-actions-failing-task",
+            "repeatInterval": 13,
+            "cmd": "lss",
+            "msg": "i am a total failure and pain in ur **",
+            "actionsToBeTaken": [
+                {
+                    "name": "kill john",
+                    "cmd": "lss"
+                },
+                {
+                    "name": "kill jane",
+                    "cmd": "./demo-scripts/some-file-that-does-not-exist.sh"
+                }
+            ]
+        },
+        {
+            "name": "always-failing-task",
+            "repeatInterval": 30,
+            "cmd": "lss",
+            "msg": "always failing task"
         }
     ]
 }

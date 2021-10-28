@@ -17,13 +17,13 @@ message ErrorMsg {
 
 message From {
     string Hostname = 1;
-    string IP = 2;
+    string TaskName = 2;
 }
 
 message Msg {
-    string Title = 1;
-    string Short = 2;
-    string Long = 3;
+    string Short = 1;
+    string Long = 2;
+    string Time = 3;
 }
 
 message Void {}

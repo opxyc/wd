@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/lithammer/shortuuid"
-	"github.com/opxyc/wd/utils/logger"
+	"github.com/opxyc/goutils/logger"
 	"github.com/opxyc/wd/wd"
 	"google.golang.org/grpc"
 )
@@ -39,12 +39,13 @@ func main() {
 	ctx, cancelFunc := context.WithCancel(context.Background())
 	defer cancelFunc()
 
-	sl, err = logger.NewDailyLogger(ctx, *sDir, 00, 00, os.Stdout)
+	const logFileNameFormat = "2006-Jan-02"
+	sl, err = logger.NewDailyLogger(ctx, *sDir, logFileNameFormat, 00, 00, os.Stdout)
 	if err != nil {
 		log.Fatalf("could not set logger #1: %v\n", err)
 	}
 
-	tl, err = logger.NewDailyLogger(ctx, *tDir, 00, 00)
+	tl, err = logger.NewDailyLogger(ctx, *tDir, logFileNameFormat, 00, 00)
 	if err != nil {
 		log.Fatalf("could not set logger #2: %v\n", err)
 	}
@@ -77,7 +78,7 @@ func main() {
 	signalReceived := <-sigChan
 	sl.Printf("received '%v', attempting graceful shutdown\n", signalReceived)
 	cancelFunc()
-	time.Sleep(time.Millisecond * 300)
+	time.Sleep(time.Millisecond * 500)
 	log.Println("done")
 }
 
@@ -117,11 +118,11 @@ func execute(ctx context.Context, t *task) string {
 					status = 0
 				}
 			}
-			err = gc.send(id, hostname, t.Name, t.Msg, sb.String(), status)
+			err = gc.send(id, hostname, t.Name, t.Name, t.Msg, sb.String(), status)
 			if err != nil {
 				sl.Printf("could not send msg to server: %v", err)
 			}
-			mlog(tl, t.Name, nil, "", "completed with error")
+			mlog(tl, t.Name, nil, "", fmt.Sprintf("completed with status %v", status))
 		}
 	}
 }
