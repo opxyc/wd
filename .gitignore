@@ -1,6 +1,3 @@
 log/
-clientx
-serverx
-wdcx
-
-test/
+demo-scripts/
+*.json

@@ -14,7 +14,7 @@ import (
 
 	"github.com/lithammer/shortuuid"
 	"github.com/opxyc/goutils/logger"
-	"github.com/opxyc/wd/wd"
+	"github.com/opxyc/wd/proto"
 	"google.golang.org/grpc"
 )
 
@@ -23,11 +23,11 @@ var (
 	addr     = flag.String("r", "localhost:40090", "server address in the format IP:PORT")
 	sDir     = flag.String("sl", "log/self", "client specific log directory")
 	tDir     = flag.String("tl", "log/task", "task execution log directory")
-	sl       *log.Logger       // self logger - for logging client specific stuff
-	tl       *log.Logger       // task execution logger
-	client   wd.WatchdogClient // grpc client
-	gc       *GC               // grpc client
-	hostname string            // system hostname
+	sl       *log.Logger          // self logger - for logging client specific stuff
+	tl       *log.Logger          // task execution logger
+	client   proto.WatchdogClient // grpc client
+	gc       *GC                  // grpc client
+	hostname string               // system hostname
 )
 
 func main() {
@@ -167,11 +167,11 @@ func runActions(t *task, err error) (*string, bool) {
 }
 
 // gRPClient creates and returns a gRPC client
-func gRPCClient(addr string) (wd.WatchdogClient, error) {
+func gRPCClient(addr string) (proto.WatchdogClient, error) {
 	conn, err := grpc.Dial(addr, grpc.WithInsecure())
 	if err != nil {
 		return nil, err
 	}
-	client = wd.NewWatchdogClient(conn)
+	client = proto.NewWatchdogClient(conn)
 	return client, nil
 }

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/opxyc/wd/wd"
+	"github.com/opxyc/wd/proto"
 	"google.golang.org/grpc"
 )
 
@@ -14,7 +14,7 @@ import (
 func gRPCServer(addr string) {
 	srv := grpc.NewServer()
 	var pb pbSrv
-	wd.RegisterWatchdogServer(srv, pb)
+	proto.RegisterWatchdogServer(srv, pb)
 	lsnr, err := net.Listen("tcp", addr)
 	if err != nil {
 		l.Fatalf("could not listen on %s: %v\n", addr, err)
@@ -26,18 +26,18 @@ func gRPCServer(addr string) {
 
 type pbSrv struct{}
 
-func (pbSrv) SendErrorMsg(ctx context.Context, msg *wd.ErrorMsg) (*wd.Void, error) {
+func (pbSrv) SendAlert(ctx context.Context, msg *proto.Alert) (*proto.Void, error) {
 	// log msg to file..
 	info := fmt.Sprintf("%-23s %-16s %s", msg.Id, msg.From.Hostname, msg.Msg.Short)
 	l.Printf("%s\n", info)
 
 	// send the received alert/msg to all ws connections
 	pushmsg(msg)
-	return &wd.Void{}, nil
+	return &proto.Void{}, nil
 }
 
 // pushmsg broadcasts msg to websocket connections
-func pushmsg(msg *wd.ErrorMsg) {
+func pushmsg(msg *proto.Alert) {
 	m := &msgFormat{
 		Time:     msg.Msg.Time,
 		ID:       msg.Id,

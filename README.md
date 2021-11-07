@@ -1,15 +1,73 @@
 # WatchDog 🤪
 
-Monitor servers through plug in scripts.
+Monitor servers through plug-in scripts. 
 
-Three components:
+![](https://user-images.githubusercontent.com/34760059/139182059-2fc3af8b-29af-4a06-b20c-2269479d4b61.png)
 
-[**Client**](cmd/client)s running on multiple servers(that are to be monitored). Requires a configuration file with format mentioned below and runs the tasks mentioned in the conf file. On error, it sends message to **server**.
+WD has mainly two components - the client and server. **Client** is a program that runs all on the machines we have to monitor and **Server** is a program that runs on a single (alert) server that listens for incoming alerts sent by the Clients upon any issue on the machines they run on.
+
+# Server
+The server (is a combination of gRPC server and a WebSocket server that) listens for incoming alerts from Clients and broadcasts the same to listening connections.
+
+### Usage
+```
+Usage of server:
+  -grpc-addr string
+        network address addr on which gRPC server should listen on (default ":40090")
+  -http-addr string
+        network address addr on which http server should listen on (default ":40080")
+  -l string
+        log directory (default "log")
+```
+It, by default, listens on ports 40090 and 40080 for gRPC and WebSocket connections respectively, and uses `./log/` directory for logging. All those can be tuned using the flags given above. Note: It is restricted to handle only up to 1000 WebSocket connections.
+
+#### Logging
+Logs are split on a daily basis and stored to the logging directory mentioned via `-l` with name in the format yyyy-month-dd.
+
+
+# Client
+**Client** is a binary that should run on all the machines which are to be monitored. All Clients should have a configuration file inside which we have to explicitly mention the list of tasks or checks that are to be performed. Whenever a task fails, it will trigger an alert, which will be sent to the **Server**.
+
+#### What is a Task and a Config file?
+A task is something that has to be performed by the Client on a regular interval, which helps us to make sure the machine is in good health and available. For example, if we have to check whether the CPU usage is more than 90% or not, we can do the something like this:
+
+```sh
+#!/bin/bash
+threshold="90"
+cpuUsage=$(top -bn1 | grep "Cpu(s)" | \
+        sed "s/.*, *\([0-9.]*\)%* id.*/\1/" | \
+        awk '{print 100 - $1}')
+if [ 1 -eq "$(echo "${cpuUsage} > ${threshold}" | bc)" ]
+then
+    >&2 echo "current CPU usage is ${cpuUsage}"
+    exit 1 # 👈 note this
+fi
+```
+
+And inside the config file, a task can be defined in the below format:
+
+```json
+{
+    "name": "cpu-usage-check",
+    "cmd": "/path/to/cpu/monitoring/script.sh",
+    "repeatInterval": 20,
+    "msg": "CPU usage greater than 90%",
+    "actionsToBeTaken": [
+        {
+            "name": "cancel-backup-process-if-any",
+            "cmd": "/path/to/that/script"
+        }
+    ]
+}
 
 ```
-Usage of ./client:
+`actionsToBeTaken` field defines the set of actions to be performed when the actual task fails. There can be multiple actions as well. *For more info on the config file, refer to the section [below](#the-config-file).*
+
+### Usage
+```
+Usage of client:
   -c string
-        path to cfg file (default "config.json")
+        path to config file (default "config.json")
   -r string
         server address in the format IP:PORT (default "localhost:40090")
   -sl string
@@ -17,31 +75,19 @@ Usage of ./client:
   -tl string
         task execution log directory (default "log/task")
 ```
-The [**Server**](cmd/server) is a gRPC server listening on port 40090. Multiple **client**s can connect to it and share errors/alerts. It then broadcasts the same to **wdc**s. Server also runs a http server for ws connections on port 40080.
 
-```
-Usage of ./server:
-  -l string
-        log directory (default "log")
-```
+#### Logging
+Client process generates two types of logs - self and task logs; where self logs refer to the Client process specific logs like unable to connect to alert server or so and task logs will contain execution history of tasks mentioned in the config file and their errors and outputs if any. The log directory for both can be mentioned via `sl` and `tl` flags. Logs are split on a daily basis and stored in respective directories.
 
-[**wdc**](cmd/wdc)s are clients that run on monitoring spoc's local machines. It connects to the **server** through websockets and listens to incoming alerts and logs to `$HOME/WatchDog-Client/log` directory. It also includes an http server listening on port 8080 with a single end point `/{id}` which returns details of the alert with given `id`.
+#### Alert Behaviour
+| If | Will alert be sent? | Behaviour |
+| --- | --- | --- |
+| Task completes successfully | No | No alerts. Logs "task completed successfully". |
+| Task fails | Yes | Will log the error and output; and:<br/>If `actionsToBeTaken` is mentioned, will proceed with it's execution and then send an alert accordingly: <br/><ul><li>If all actions succeeds, it will send an alert with status = `0` implying OK.</li> <li> If any one of the listed action(s) fails, it will send an alert with status = `1` implying the need for manual effort.</li></ul> Else, it will simply send an alert. | 
 
-```
-Usage of wdc: 
-    wdcx COMMAND
+---
 
-    Commands:
-        start - listen to incoming alerts
-            -ep string
-                connection endpoint for -r (default "/ws/connect")
-            -r string
-                http server address (default "localhost:40080")
-
-        get {id} - prints details of an alert given it's id
-```
-
-## Configuration file format
+## The Config file
 type: JSON
 
 ```js
@@ -111,8 +157,24 @@ type: JSON
 }
 ```
 
-### Alert Behaviour
-| If | Will alert be sent? | Behaviour |
-| --- | --- | --- |
-| `cmd` completes successfully | No | No alerts. Logs "task completed successfully". |
-| `cmd` fails | Yes | Will log the error and output; and:<br/>If `actionsToBeTaken` is mentioned, will proceed with it's execution and then send an alert accordingly: <br/><ul><li>If all actions succeeds, it will send an alert with final status as "OK"</li> <li> If any one of the listed action(s) fails, it will mention "actions failed to complete" in the alert sent.</li></ul> Else, it will simply send an alert. | 
+# Frontend Client
+The **Server** runs a WebSocket server to which front-end client apps can connect in order to receive alert messages. The connection endpoint is `/ws/connect`.
+
+The messages are sent in the below format:
+```js
+{
+    "time": "alert generation time",
+    "id": "alert ID",
+    "from": "hostname of the machine which generated the alert",
+    "taskName": "the name of the task which failed",
+    "short": "msg mentione in config file of the task",
+    "long": "combined output of the task - error and output",
+    "status": 0 // or 1
+}
+```
+The `status` field will be:
+- 0 if the task failed, but `actionsToBeTaken` completed successfully
+- 1 if the task failed and `actionsToBeTaken` is not specified or any one of the actions mentioned has failed.
+
+## WDC - WatchDogClient
+WDC is a front-end client that's written for WD. Go check it out [here](https://github.com/opxyc/wdc).

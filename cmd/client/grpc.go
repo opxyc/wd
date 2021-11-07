@@ -4,13 +4,13 @@ import (
 	"context"
 	"time"
 
-	"github.com/opxyc/wd/wd"
+	"github.com/opxyc/wd/proto"
 	"google.golang.org/grpc"
 )
 
 // GC is a gRPC client handle
 type GC struct {
-	client wd.WatchdogClient
+	client proto.WatchdogClient
 }
 
 // New returns a gRPC Client handle that can be used to
@@ -22,16 +22,16 @@ func grpcCon(addr string) (*GC, error) {
 	if err != nil {
 		return nil, err
 	}
-	gc.client = wd.NewWatchdogClient(conn)
+	gc.client = proto.NewWatchdogClient(conn)
 	return gc, nil
 }
 
 // send sends a message to gRPC server
 func (gc *GC) send(id, hostname, taskName, title, short, long string, status int32) error {
-	_, err := gc.client.SendErrorMsg(context.Background(), &wd.ErrorMsg{
+	_, err := gc.client.SendAlert(context.Background(), &proto.Alert{
 		Id:     id,
-		From:   &wd.From{Hostname: hostname, TaskName: taskName},
-		Msg:    &wd.Msg{Short: short, Long: long, Time: time.Now().Format("2006-Jan-02 15:04:05")},
+		From:   &proto.From{Hostname: hostname, TaskName: taskName},
+		Msg:    &proto.Msg{Short: short, Long: long, Time: time.Now().Format("2006-Jan-02 15:04:05")},
 		Status: status,
 	})
 	return err

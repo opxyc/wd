@@ -1,14 +1,14 @@
 syntax = "proto3";
 
-package wd;
+package proto;
 
-option go_package = "github.com/opxyc/wd/wd";
+option go_package = "github.com/opxyc/wd/proto";
 
 service watchdog {
-    rpc SendErrorMsg (ErrorMsg) returns (Void);
+    rpc SendAlert (Alert) returns (Void);
 }
 
-message ErrorMsg {
+message Alert {
     string Id = 1;
     From From = 2;
     Msg Msg = 3;
